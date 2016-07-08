@@ -1288,7 +1288,7 @@ ifeq ($(FAMILY), NRF51)
   DEFINES += -DNRF51 -DSWI_DISABLE0 -DSOFTDEVICE_PRESENT -DS130 -DBLE_STACK_SUPPORT_REQD -DNRF_LOG_USES_UART # SoftDevice included by default.
   LINKER_RAM:=$(shell python scripts/get_board_info.py $(BOARD) "board.chip['ram']")
 
-  SOFTDEVICE        = $(NRF5X_SDK_PATH)/components/softdevice/s130/hex/s130_nrf51_2.0.0-7.alpha_softdevice.hex
+  SOFTDEVICE        = $(NRF5X_SDK_PATH)/components/softdevice/s130/hex//s130_nrf51_2.0.0_softdevice.hex
 
   ifdef USE_BOOTLOADER
   LINKER_FILE = $(NRF5X_SDK_PATH)/../nrf5x_linkers/linker_nrf51_ble_espruino_$(LINKER_RAM)_bootloader.ld
@@ -1319,7 +1319,7 @@ ifeq ($(FAMILY), NRF52)
 
   DEFINES += -DSWI_DISABLE0 -DSOFTDEVICE_PRESENT -DNRF52 -DCONFIG_GPIO_AS_PINRESET -DS132 -DBLE_STACK_SUPPORT_REQD -DNRF_LOG_USES_UART
 
-  SOFTDEVICE        = $(NRF5X_SDK_PATH)/components/softdevice/s132/hex/s132_nrf52_2.0.0-7.alpha_softdevice.hex
+  SOFTDEVICE        = $(NRF5X_SDK_PATH)/components/softdevice/s132/hex/s132_nrf52_2.0.0_softdevice.hex
 
   ifdef USE_BOOTLOADER
   LINKER_FILE = $(NRF5X_SDK_PATH)/../nrf5x_linkers/linker_nrf52_ble_espruino_bootloader.ld
@@ -1443,12 +1443,16 @@ ifdef NRF5X
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_services/ble_nus
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/hal
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain/gcc
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain/CMSIS/Include
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/common
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_advertising
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/trace
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/softdevice/common/softdevice_handler
   INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/twi_master
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/fstorage
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/fstorage/config
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/experimental_section_vars
 
   TARGETSOURCES += \
   $(NRF5X_SDK_PATH)/components/libraries/util/app_error.c \
@@ -1456,6 +1460,7 @@ ifdef NRF5X
   $(NRF5X_SDK_PATH)/components/libraries/trace/app_trace.c \
   $(NRF5X_SDK_PATH)/components/libraries/util/nrf_assert.c \
   $(NRF5X_SDK_PATH)/components/libraries/uart/app_uart.c \
+  $(NRF5X_SDK_PATH)/components/libraries/fstorage/fstorage.c \
   $(NRF5X_SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
   $(NRF5X_SDK_PATH)/components/drivers_nrf/common/nrf_drv_common.c \
   $(NRF5X_SDK_PATH)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
