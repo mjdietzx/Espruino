@@ -148,7 +148,19 @@ static void ble_stack_init(bool init_softdevice)
     err_code = sd_softdevice_vector_table_base_set(BOOTLOADER_REGION_START);
     APP_ERROR_CHECK(err_code);
    
-    SOFTDEVICE_HANDLER_APPSH_INIT(NRF_CLOCK_LFCLKSRC_RC_250_PPM_TEMP_8000MS_CALIBRATION, true);
+    // TODO: enable if we're on a device with 32kHz xtal
+    /*nrf_clock_lf_cfg_t clock_lf_cfg = {
+        .source        = NRF_CLOCK_LF_SRC_XTAL,
+        .rc_ctiv       = 0,
+        .rc_temp_ctiv  = 0,
+        .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM};*/
+    nrf_clock_lf_cfg_t clock_lf_cfg = {
+            .source        = NRF_CLOCK_LF_SRC_RC,
+            .rc_ctiv       = 16, // recommended for nRF52
+            .rc_temp_ctiv  = 2,  // recommended for nRF52
+            .xtal_accuracy = 0};
+
+    SOFTDEVICE_HANDLER_APPSH_INIT(&clock_lf_cfg, true);
 
     // Enable BLE stack.
     ble_enable_params_t ble_enable_params;
