@@ -1321,15 +1321,121 @@ ifeq ($(FAMILY), NRF52)
 
   SOFTDEVICE        = $(NRF5X_SDK_PATH)/components/softdevice/s132/hex/s132_nrf52_2.0.0-7.alpha_softdevice.hex
 
-  ifdef USE_BOOTLOADER
-  LINKER_FILE = $(NRF5X_SDK_PATH)/../nrf5x_linkers/linker_nrf52_ble_espruino_bootloader.ld
+  ifdef USE_BOOTLOADER  
   NRF_BOOTLOADER    = $(ROOT)/targetlibs/nrf5x/nrf5_singlebank_bl_hex/nrf52_s132_singlebank_bl.hex
   NFR_BL_START_ADDR = 0x7A000
   NRF_BOOTLOADER_SETTINGS = $(ROOT)/targetlibs/nrf5x/nrf5_singlebank_bl_hex/bootloader_settings_nrf52.hex # Writes address 0x7F000 with 0x01.
+  ifdef BOOTLOADER
+    # we're trying to compile the bootloader itself
+    LINKER_FILE = $(NRF5X_SDK_PATH)/../nrf5x_linkers/dfu_gcc_nrf52.ld
+  else
+    LINKER_FILE = $(NRF5X_SDK_PATH)/../nrf5x_linkers/linker_nrf52_ble_espruino_bootloader.ld
+  endif
   else
   LINKER_FILE = $(NRF5X_SDK_PATH)/../nrf5x_linkers/linker_nrf52_ble_espruino.ld
   endif
 endif #FAMILY == NRF52
+
+
+ifdef NRF5X
+  # Just try and get rid of the compile warnings.
+  CFLAGS += -Wno-sign-conversion -Wno-conversion -Wno-unused-parameter -fomit-frame-pointer #this is for device manager in nordic sdk
+  DEFINES += -DBLUETOOTH
+
+  ARM = 1
+  ARM_HAS_OWN_CMSIS = 1 # Nordic uses its own CMSIS files in its SDK, these are up-to-date.
+  INCLUDE += -I$(ROOT)/targetlibs/nrf5x -I$(NRF5X_SDK_PATH)
+  
+  TEMPLATE_PATH = $(ROOT)/targetlibs/nrf5x/nrf5x_linkers # This is where the common linker for both nRF51 & nRF52 is stored.
+  LDFLAGS += -L$(TEMPLATE_PATH)
+
+  # These files are the Espruino HAL implementation.
+  INCLUDE += -I$(ROOT)/targets/nrf5x
+  ifdef BOOTLOADER
+    BUILD_LINKER_FLAGS+=--bootloader
+    PROJ_NAME=$(BOOTLOADER_PROJ_NAME)
+    WRAPPERSOURCES =
+    SOURCES = \
+      targets/nrf5x_dfu/main.c \
+      targets/nrf5x_dfu/dfu_ble_svc.c
+  else
+    SOURCES +=                              \
+      targets/nrf5x/main.c                    \
+      targets/nrf5x/jshardware.c              \
+      targets/nrf5x/nrf5x_utils.c
+  endif
+
+  # Careful here.. All these includes and sources assume a SoftDevice. Not efficeint/clean if softdevice (ble) is not enabled...
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/config
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/util
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/delay
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/uart
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/common
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/pstorage
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/uart
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/device
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/button
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/timer
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/gpiote
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_services/ble_nus
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/hal
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain/gcc
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/common
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_advertising
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/trace
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/softdevice/common/softdevice_handler
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/twi_master
+
+  TARGETSOURCES += \
+  $(NRF5X_SDK_PATH)/components/libraries/util/app_error.c \
+  $(NRF5X_SDK_PATH)/components/libraries/timer/app_timer.c \
+  $(NRF5X_SDK_PATH)/components/libraries/trace/app_trace.c \
+  $(NRF5X_SDK_PATH)/components/libraries/util/nrf_assert.c \
+  $(NRF5X_SDK_PATH)/components/libraries/uart/app_uart.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/common/nrf_drv_common.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/uart/nrf_drv_uart.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/pstorage/pstorage.c \
+  $(NRF5X_SDK_PATH)/components/ble/common/ble_advdata.c \
+  $(NRF5X_SDK_PATH)/components/ble/ble_advertising/ble_advertising.c \
+  $(NRF5X_SDK_PATH)/components/ble/common/ble_conn_params.c \
+  $(NRF5X_SDK_PATH)/components/ble/ble_services/ble_nus/ble_nus.c \
+  $(NRF5X_SDK_PATH)/components/ble/common/ble_srv_common.c \
+  $(NRF5X_SDK_PATH)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/hal/nrf_nvmc.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
+  $(NRF5X_SDK_PATH)/components/drivers_nrf/hal/nrf_adc.c 
+  # $(NRF5X_SDK_PATH)/components/libraries/util/nrf_log.c
+
+  ifdef USE_BOOTLOADER
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/device_manager
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_services/ble_dfu
+  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu
+  TARGETSOURCES += \
+   $(NRF5X_SDK_PATH)/components/ble/device_manager/device_manager_peripheral.c \
+   $(NRF5X_SDK_PATH)/components/ble/ble_services/ble_dfu/ble_dfu.c \
+   $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/bootloader_util.c \
+   $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/dfu_app_handler.c
+  ifdef BOOTLOADER
+    INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/crc16
+    INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/scheduler
+    INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/hci
+    INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/ble_transport
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/crc16/crc16.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/scheduler/app_scheduler.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/bootloader.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/bootloader_settings.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/dfu_single_bank.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/dfu_transport_ble.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/experimental/dfu_init_template_signing.c
+    TARGETSOURCES += $(NRF5X_SDK_PATH)/components/libraries/hci/hci_mem_pool.c
+  endif
+  endif
+
+endif #NRF5X
 
 ifeq ($(FAMILY), EFM32GG)
 
@@ -1406,84 +1512,6 @@ ifeq ($(FAMILY), EFM32GG)
 	# $(GECKO_SDK_PATH)/emlib/src/em_wdog.c
 
 endif #FAMILY == EFM32
-
-ifdef NRF5X
-
-  # Just try and get rid of the compile warnings.
-  CFLAGS += -Wno-sign-conversion -Wno-conversion -Wno-unused-parameter -fomit-frame-pointer #this is for device manager in nordic sdk
-  DEFINES += -DBLUETOOTH
-
-  ARM = 1
-  ARM_HAS_OWN_CMSIS = 1 # Nordic uses its own CMSIS files in its SDK, these are up-to-date.
-  INCLUDE += -I$(ROOT)/targetlibs/nrf5x -I$(NRF5X_SDK_PATH)
-  
-  TEMPLATE_PATH = $(ROOT)/targetlibs/nrf5x/nrf5x_linkers # This is where the common linker for both nRF51 & nRF52 is stored.
-  LDFLAGS += -L$(TEMPLATE_PATH)
-
-  # These files are the Espruino HAL implementation.
-  INCLUDE += -I$(ROOT)/targets/nrf5x
-  SOURCES +=                              \
-  targets/nrf5x/main.c                    \
-  targets/nrf5x/jshardware.c              \
-  targets/nrf5x/nrf5x_utils.c
-
-  # Careful here.. All these includes and sources assume a SoftDevice. Not efficeint/clean if softdevice (ble) is not enabled...
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/config
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/util
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/delay
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/uart
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/common
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/pstorage
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/uart
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/device
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/button
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/timer
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/gpiote
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_services/ble_nus
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/hal
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain/gcc
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/toolchain
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/common
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_advertising
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/trace
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/softdevice/common/softdevice_handler
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/drivers_nrf/twi_master
-
-  TARGETSOURCES += \
-  $(NRF5X_SDK_PATH)/components/libraries/util/app_error.c \
-  $(NRF5X_SDK_PATH)/components/libraries/timer/app_timer.c \
-  $(NRF5X_SDK_PATH)/components/libraries/trace/app_trace.c \
-  $(NRF5X_SDK_PATH)/components/libraries/util/nrf_assert.c \
-  $(NRF5X_SDK_PATH)/components/libraries/uart/app_uart.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/common/nrf_drv_common.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/uart/nrf_drv_uart.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/pstorage/pstorage.c \
-  $(NRF5X_SDK_PATH)/components/ble/common/ble_advdata.c \
-  $(NRF5X_SDK_PATH)/components/ble/ble_advertising/ble_advertising.c \
-  $(NRF5X_SDK_PATH)/components/ble/common/ble_conn_params.c \
-  $(NRF5X_SDK_PATH)/components/ble/ble_services/ble_nus/ble_nus.c \
-  $(NRF5X_SDK_PATH)/components/ble/common/ble_srv_common.c \
-  $(NRF5X_SDK_PATH)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/hal/nrf_nvmc.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
-  $(NRF5X_SDK_PATH)/components/drivers_nrf/hal/nrf_adc.c 
-  # $(NRF5X_SDK_PATH)/components/libraries/util/nrf_log.c
-
-  ifdef USE_BOOTLOADER
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/device_manager
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/ble/ble_services/ble_dfu
-  INCLUDE += -I$(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu
-  TARGETSOURCES += \
-   $(NRF5X_SDK_PATH)/components/ble/device_manager/device_manager_peripheral.c \
-   $(NRF5X_SDK_PATH)/components/ble/ble_services/ble_dfu/ble_dfu.c \
-   $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/bootloader_util.c \
-   $(NRF5X_SDK_PATH)/components/libraries/bootloader_dfu/dfu_app_handler.c
-  endif
-
-endif #NRF5X
 
 ifeq ($(FAMILY),ESP8266)
 # move os_printf strings into flash to save RAM space
